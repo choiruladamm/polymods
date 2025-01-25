@@ -16,7 +16,7 @@ datasource db {
 
 enum TaskStatus {
   Todo
-  In_Progress // Gunakan underscore untuk spasi
+  In_Progress @map("In Progress")
   Done
 }
 
