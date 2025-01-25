@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { paginationSchema, taskSchema } from './schema';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export async function GET(req: Request) {
 	try {
@@ -51,7 +52,7 @@ export async function GET(req: Request) {
 		}
 
 		return NextResponse.json({
-			pagination: {
+			meta: {
 				currentPage: page,
 				limit,
 				totalItems: total,
@@ -72,53 +73,59 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-	const body = await req.json();
-	const parsed = taskSchema.safeParse(body);
+	try {
+		const rawBody = await req.json();
+		const parsed = taskSchema.safeParse(rawBody);
 
-	if (!parsed.success) {
-		return NextResponse.json(parsed.error.errors, { status: 400 });
+		if (!parsed.success) {
+			return NextResponse.json(parsed.error.errors, { status: 400 });
+		}
+
+		const task = await prisma.$transaction(async tx => {
+			const existingTask = await tx.task.findFirst({
+				where: {
+					title: parsed.data.title,
+					status: 'Todo',
+				},
+			});
+
+			if (existingTask) {
+				throw new Error('Duplicate pending task with same title');
+			}
+
+			return tx.task.create({
+				data: {
+					...parsed.data,
+					deadline: parsed.data.deadline,
+				},
+			});
+		});
+
+		return NextResponse.json({ data: task }, { status: 201 });
+	} catch (error) {
+		console.error('[TASK_CREATION_ERROR]', error);
+
+		if (error instanceof Error && error.message.includes('Duplicate')) {
+			return NextResponse.json(
+				{ error: 'Conflict', message: error.message },
+				{ status: 409 },
+			);
+		}
+
+		if (error instanceof PrismaClientKnownRequestError) {
+			return NextResponse.json(
+				{
+					error: 'Database Error',
+					code: error.code,
+					meta: error.meta,
+				},
+				{ status: 500 },
+			);
+		}
+
+		return NextResponse.json(
+			{ error: 'Internal Server Error' },
+			{ status: 500 },
+		);
 	}
-
-	const task = await prisma.task.create({
-		data: {
-			...parsed.data,
-			deadline: new Date(parsed.data.deadline),
-		},
-	});
-
-	return NextResponse.json({ data: task }, { status: 201 });
 }
-
-// export async function PUT(req: Request) {
-// 	const body = await req.json();
-// 	const parsed = taskSchema.safeParse(body);
-
-// 	if (!parsed.success) {
-// 		return NextResponse.json(parsed.error.errors, { status: 400 });
-// 	}
-
-// 	const task = await prisma.task.update({
-// 		where: { id: body.id },
-// 		data: {
-// 			...parsed.data,
-// 			deadline: new Date(parsed.data.deadline),
-// 		},
-// 	});
-
-// 	return NextResponse.json(task);
-// }
-
-// export async function DELETE(req: Request) {
-// 	const { id } = await req.json();
-
-// 	if (!id) {
-// 		return NextResponse.json(
-// 			{ message: 'Task ID is required' },
-// 			{ status: 400 },
-// 		);
-// 	}
-
-// 	await prisma.task.delete({ where: { id } });
-
-// 	return NextResponse.json({ message: 'Task deleted' });
-// }
