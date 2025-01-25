@@ -29,9 +29,6 @@ export async function PATCH(req: Request, { params }: RequestParams) {
 			where: { id: params.id },
 			data: {
 				...parsed.data,
-				deadline: parsed.data.deadline
-					? new Date(parsed.data.deadline)
-					: undefined,
 			},
 		});
 
