@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const taskSchema = z.object({
 	title: z.string().min(1, 'Title is required'),
 	description: z.string().optional(),
-	status: z.enum(['Todo', 'In Progress', 'Done']),
+	status: z.enum(['Todo', 'In_Progress', 'Done']),
 	deadline: z.string().datetime({
 		offset: true,
 		message: 'Invalid deadline format. Use ISO 8601 format',

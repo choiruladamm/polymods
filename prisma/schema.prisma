@@ -16,7 +16,7 @@ datasource db {
 
 enum TaskStatus {
   Todo
-  In_Progress @map("In Progress")
+  In_Progress
   Done
 }
 
