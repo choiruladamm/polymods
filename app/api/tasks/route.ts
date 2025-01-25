@@ -60,7 +60,15 @@ export async function GET(req: Request) {
 			},
 			data: tasks,
 		});
-	} catch (error) {}
+	} catch (error) {
+		return NextResponse.json(
+			{
+				error: 'Internal Server Error',
+				message: 'Failed to fetch tasks',
+			},
+			{ status: 500 },
+		);
+	}
 }
 
 export async function POST(req: Request) {
