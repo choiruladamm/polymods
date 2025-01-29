@@ -11,13 +11,18 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-	relationMode = "prisma"
 }
 
 enum TaskStatus {
   Todo
   In_Progress
   Done
+}
+
+enum BookStatus {
+  AVAILABLE
+  LOANED
+  RESERVED
 }
 
 model Task {
@@ -28,4 +33,68 @@ model Task {
   deadline    DateTime
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+}
+
+model Book {
+  id          String         @id @default(uuid())
+  title       String
+  isbn        String         @unique
+  status      BookStatus     @default(AVAILABLE)
+  description String?
+  author      Author         @relation(fields: [authorId], references: [id])
+  authorId    String
+  categories  BookCategory[]
+  copies      Int
+  publishedAt DateTime
+  createdAt   DateTime       @default(now())
+  Loan        Loan[]
+}
+
+model Category {
+  id        String         @id @default(uuid())
+  name      String         @unique
+  books     BookCategory[]
+  createdAt DateTime       @default(now())
+}
+
+model BookCategory {
+  id         String   @id @default(uuid())
+  book       Book     @relation(fields: [bookId], references: [id])
+  bookId     String
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  @@unique([bookId, categoryId])
+}
+
+model Author {
+  id        String   @id @default(uuid())
+  name      String
+  bio       String?
+  books     Book[]
+  createdAt DateTime @default(now())
+}
+
+model Member {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String
+  phone         String
+  borrowedBooks Loan[]
+  maxBorrow     Int      @default(5)
+  createdAt     DateTime @default(now())
+}
+
+model Loan {
+  id         String    @id @default(uuid())
+  book       Book      @relation(fields: [bookId], references: [id])
+  bookId     String
+  member     Member    @relation(fields: [memberId], references: [id])
+  memberId   String
+  borrowedAt DateTime  @default(now())
+  returnedAt DateTime?
+  dueDate    DateTime  @default(dbgenerated("now() + interval '14 days'"))
+  pinalty    Float?    @default(0)
+  createdAt  DateTime  @default(now())
 }
