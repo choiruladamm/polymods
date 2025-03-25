@@ -11,10 +11,7 @@ interface RequestParams {
 
 export async function PATCH(req: Request, { params }: RequestParams) {
 	if (!params.id) {
-		return NextResponse.json(
-			{ message: 'Task ID is required' },
-			{ status: 400 },
-		);
+		return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
 	}
 
 	try {
